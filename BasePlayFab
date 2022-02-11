@@ -1,0 +1,168 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using PlayFab;
+using PlayFab.ClientModels;
+using UnityEngine.UI;
+
+public class PlayfabManager : MonoBehaviour
+{
+    /// <summary>
+    /// Método de autentificação mais básica
+    /// que cria contas anônimas
+    /// 'LoginWithCustomID
+    /// </summary>
+
+    //nesse script permite obter o id atual para cada uma das
+    //opçoes de personalização
+    public CharacterEditor characterEditor;
+
+    public InputField emailInput, senhaInput;
+
+    void Start()
+    {
+        Login();
+        characterEditor = GetComponent<CharacterEditor>();
+    }
+    void Login()
+    {
+        //Solicitação
+        var request = new LoginWithCustomIDRequest
+        {
+            CustomId = SystemInfo.deviceUniqueIdentifier,
+            CreateAccount = true
+        };
+        //Chama a api playfab e passa os parametros de solicitar, sucesso e falha
+        PlayFabClientAPI.LoginWithCustomID(request, OnSuccess, OnError);
+    }
+    // Metodo sucesso e erro no login
+    void OnSuccess(LoginResult result)
+    {
+        Debug.Log("Sucesso no login / conta criada");
+    }
+    void OnError(PlayFabError error)
+    {
+        Debug.Log("Erro ao registrar/criar a conta");
+        Debug.Log(error.GenerateErrorReport());
+    }
+
+    //Player data
+    public void GetAppearance()
+    {
+        PlayFabClientAPI.GetUserData(new GetUserDataRequest(), OnDataRecieved, OnError);
+    }
+    //Metodo que obtem os dados do usuario
+    void OnDataRecieved(GetUserDataResult result)
+    {
+        Debug.Log("Dados do usuario recebido!");
+        if(result.Data != null && result.Data.ContainsKey("Hat") && result.Data.ContainsKey("Skin") && result.Data.ContainsKey("Beard"))
+        {
+            //Recebe os dados salvos do usuario
+            characterEditor.SetAppearance(result.Data["Hat"].Value, result.Data["Skin"].Value, result.Data["Beard"].Value);
+        }
+        else
+        {
+            Debug.Log("Dados não completos");
+        }
+    }
+    //Para salvar a aparencia
+    public void SaveAppearance()
+    {
+        var request = new UpdateUserDataRequest
+        {
+            Data = new Dictionary<string, string>
+            {
+                {"Hat", characterEditor.Hat },
+                {"Skin", characterEditor.Skin },
+                {"Beard", characterEditor.Beard }
+            }
+        };
+        //atualiza os dados do usuario
+        PlayFabClientAPI.UpdateUserData(request, OnDataSend, OnError);
+    }
+    void OnDataSend(UpdateUserDataResult result)
+    {
+        Debug.Log("Successful user data send!");
+    }
+
+
+    //envia os dados para o leaderboard no Playfab
+    public void SendLeaderboard(int score)
+    {
+        var request = new UpdatePlayerStatisticsRequest
+        {
+            Statistics = new List<StatisticUpdate>
+            {
+                new StatisticUpdate
+                {
+                    StatisticName = "PlatformScore",
+                    Value = score
+                }
+            }
+        };
+        //os parametros sao (solicitação, atualização na tabela de pontuação e erro)
+        PlayFabClientAPI.UpdatePlayerStatistics(request, OnLeaderboardUpdate, OnError);
+    }
+
+    //Atualiza os valores da tabela
+    void OnLeaderboardUpdate(UpdatePlayerStatisticsResult result)
+    {
+        Debug.Log("Successfull sent");
+    }
+
+    //Busca os dados da tabela, usando 3 parametros (solicitação, busca e erro).
+    public void GetLeaderboard()
+    {
+        var request = new GetLeaderboardRequest
+        {
+            StatisticName = "PlatformScore",
+            StartPosition = 0,
+            MaxResultsCount = 10
+        };
+        PlayFabClientAPI.GetLeaderboard(request, OnLeaderboardGet, OnError);
+    }
+    //Vai obter o resultado da tabela
+    void OnLeaderboardGet(GetLeaderboardResult result)
+    {
+        //para obter os dados da abela de classificação
+        //Isso é uma saída de dados simples
+        foreach (var item in result.Leaderboard)
+        {
+            Debug.Log(item.Position + " " + item.PlayFabId + " " + item.StatValue);
+        }
+    }
+
+    public void RegisterButton()
+    {
+        var request = new RegisterPlayFabUserRequest
+        {
+            Email = emailInput.text,
+            Password = senhaInput.text,
+            RequireBothUsernameAndEmail = false
+        };
+        PlayFabClientAPI.RegisterPlayFabUser(request, OnRegisterSuccess, OnError);
+    }
+    void OnRegisterSuccess(RegisterPlayFabUserResult result)
+    {
+        //Melhor aparecer em texto para o usuario
+        Debug.Log("Registrado e logado");
+    }
+    public void LoginButton()
+    {
+        var request = new LoginWithEmailAddressRequest
+        {
+            Email = emailInput.text,
+            Password = senhaInput.text
+        };
+        PlayFabClientAPI.LoginWithEmailAddress(request, OnLoginSuccess, OnError);
+    }
+    public void ResetPasswordButton()
+    {
+        
+    }
+    void OnLoginSuccess(LoginResult result)
+    {
+        Debug.Log("login/criação de conta bem sucedito");
+
+    }
+}
