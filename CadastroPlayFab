@@ -1,0 +1,95 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using PlayFab;
+using PlayFab.ClientModels;
+using UnityEngine.UI;
+
+public class PlayFabManager : MonoBehaviour
+{
+    public Text emailInput, senhaInput, userInput, aviso;
+    public Text senhaInputL, userInputL, aviso2;
+    //public InputField senhaTeste;
+    public Button btnRegister, btnLogin;
+    void Start()
+    {
+        Login();
+        btnRegister.onClick.AddListener(RegisterButton);
+        btnLogin.onClick.AddListener(LoginButton);
+        btnRegister.interactable = false;
+        senhaInput.text = "Car";
+        //senhaTeste.contentType = InputField.ContentType.Password;
+    }
+    private void Update()
+    {
+        if(senhaInput.text.Length > 5)
+        {
+            btnRegister.interactable = true;
+            aviso.enabled = false;
+        }
+        else
+        {
+            btnRegister.interactable = false;
+            aviso.enabled=true;
+        }
+    }
+    // Update is called once per frame
+    void Login()
+    {
+        //Solicitação
+        var request = new LoginWithCustomIDRequest
+        {
+            CustomId = SystemInfo.deviceUniqueIdentifier,
+            CreateAccount = true
+        };
+        //Chama a api playfab e passa os parametros de solicitar, sucesso e falha
+        PlayFabClientAPI.LoginWithCustomID(request, OnSuccess, OnError);
+    }
+    // Metodo sucesso e erro no login
+    void OnSuccess(LoginResult result)
+    {
+        Debug.Log("Sucesso no login / conta criada");
+    }
+    void OnError(PlayFabError error)
+    {
+        Debug.Log("Erro ao registrar/criar a conta");
+        Debug.Log(error.GenerateErrorReport());
+    }
+    public void RegisterButton()
+    {
+        var request = new RegisterPlayFabUserRequest
+        {
+            Username = userInput.text,
+            Email = emailInput.text,
+            Password = senhaInput.text,
+            RequireBothUsernameAndEmail = false
+        };
+        PlayFabClientAPI.RegisterPlayFabUser(request, OnRegisterSuccess, OnError);
+    }
+    void OnRegisterSuccess(RegisterPlayFabUserResult result)
+    {
+        //Melhor aparecer em texto para o usuario
+        Debug.Log("Registrado e logado");
+    }
+    public void LoginButton()
+    {
+        //var request = new LoginWithEmailAddressRequest
+        var request = new LoginWithPlayFabRequest
+        {
+            //Email = emailInput.text,
+            Username = userInputL.text,
+            Password = senhaInputL.text
+        };
+        PlayFabClientAPI.LoginWithPlayFab(request, OnLoginSuccess, OnError);
+        //PlayFabClientAPI.LoginWithEmailAddress(request, OnLoginSuccess, OnError);
+    }
+    public void ResetPasswordButton()
+    {
+
+    }
+    void OnLoginSuccess(LoginResult result)
+    {
+        Debug.Log("login/criação de conta bem sucedito");
+
+    }
+}
